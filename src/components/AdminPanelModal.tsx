@@ -10,7 +10,6 @@ import {
   Trash2,
   CheckCircle,
   Truck,
-  DollarSign,
   Shield,
   Layers,
   Search,
@@ -48,7 +47,7 @@ export const AdminPanelModal: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState<'Men' | 'Women' | 'Accessories'>('Men');
   const [formSubCategory, setFormSubCategory] = useState('Outerwear');
-  const [formPrice, setFormPrice] = useState(180);
+  const [formPrice, setFormPrice] = useState(3499);
   const [formStock, setFormStock] = useState(20);
   const [formDescription, setFormDescription] = useState('');
   const [formFabric, setFormFabric] = useState('');
@@ -90,7 +89,7 @@ export const AdminPanelModal: React.FC = () => {
     setFormName('');
     setFormCategory('Men');
     setFormSubCategory('Apparel');
-    setFormPrice(150);
+    setFormPrice(2999);
     setFormStock(25);
     setFormDescription('Artisanal garment woven from premium natural fibers.');
     setFormFabric('100% Organic Heritage Cotton. Pre-shrunk finish.');
@@ -372,7 +371,7 @@ export const AdminPanelModal: React.FC = () => {
                                 <p className="text-[#756E65]">Stock: {prod.stock} units</p>
                               </div>
                             </div>
-                            <span className="font-mono font-bold text-[#141413]">${prod.price}</span>
+                            <span className="font-mono font-bold text-[#141413]">{formatINR(prod.price)}</span>
                           </div>
                         ))}
                       </div>

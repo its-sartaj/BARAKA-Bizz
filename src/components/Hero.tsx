@@ -2,6 +2,7 @@ import React from 'react';
 import { useStore } from '../context/StoreContext';
 import { ArrowDown, Sparkles, Compass, ShieldCheck } from 'lucide-react';
 import { SafeImage } from './SafeImage';
+import { formatINR } from '../utils/formatCurrency';
 
 export const Hero: React.FC = () => {
   const { setActiveCategory, setQuickViewProduct, products } = useStore();
@@ -138,7 +139,7 @@ export const Hero: React.FC = () => {
                     {denimJacket.name}
                   </p>
                   <div className="flex items-center justify-between text-[11px] text-[#756E65]">
-                    <span className="font-mono font-medium text-[#141413]">${denimJacket.price}</span>
+                    <span className="font-mono font-medium text-[#141413]">{formatINR(denimJacket.price)}</span>
                     <span className="text-[9px] text-[#B85D36] font-semibold">Floating Cutout</span>
                   </div>
                 </div>
@@ -167,7 +168,7 @@ export const Hero: React.FC = () => {
                   <p className="text-[11px] font-semibold text-[#141413] truncate group-hover:text-[#B85D36] transition-colors">
                     Riviera Linen Shirt
                   </p>
-                  <p className="text-[11px] font-mono text-[#141413] font-medium">${linenShirt.price}</p>
+                  <p className="text-[11px] font-mono text-[#141413] font-medium">{formatINR(linenShirt.price)}</p>
                 </div>
               </div>
             )}
@@ -195,7 +196,7 @@ export const Hero: React.FC = () => {
                     Pleated Trousers
                   </p>
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-mono text-[#141413] font-medium">${trousers.price}</span>
+                    <span className="font-mono text-[#141413] font-medium">{formatINR(trousers.price)}</span>
                     <span className="text-[9px] text-[#756E65]">Small Batch</span>
                   </div>
                 </div>
