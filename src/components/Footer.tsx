@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, Instagram, Facebook, ArrowRight, Heart, Sparkles, Shield } from 'lucide-react';
+import { Mail, Phone, Instagram, Facebook, ArrowRight, Heart, Sparkles } from 'lucide-react';
 import { PolicyModals } from './PolicyModals';
 import { useStore } from '../context/StoreContext';
 import { BarakaBizzLogo } from './BarakaBizzLogo';
@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
   const [activeModal, setActiveModal] = useState<'faq' | 'shipping' | 'privacy' | 'contact' | null>(null);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterDone, setNewsletterDone] = useState(false);
-  const { setActiveCategory, setIsAdminOpen } = useStore();
+  const { setActiveCategory } = useStore();
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,15 +163,6 @@ export const Footer: React.FC = () => {
                     className="hover:text-white transition-colors"
                   >
                     Contact Us
-                  </button>
-                </li>
-                <li className="pt-1">
-                  <button
-                    onClick={() => setIsAdminOpen(true)}
-                    className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-colors font-medium"
-                  >
-                    <Shield className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Admin Studio Dashboard</span>
                   </button>
                 </li>
               </ul>

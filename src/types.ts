@@ -33,8 +33,8 @@ export interface CartItem {
 export interface User {
   id: string;
   name: string;
-  email: string;
-  phone?: string;
+  phone: string;
+  email?: string;
   role: 'customer' | 'admin';
   address?: {
     street: string;

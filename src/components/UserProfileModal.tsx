@@ -5,7 +5,6 @@ import {
   Package,
   Heart,
   User as UserIcon,
-  Shield,
   LogOut,
   MapPin,
   Phone,
@@ -37,7 +36,6 @@ export const UserProfileModal: React.FC = () => {
     updateUserProfile,
     addToCart,
     toggleWishlist,
-    setIsAdminOpen,
     setQuickViewProduct,
     showToast
   } = useStore();
@@ -179,23 +177,11 @@ export const UserProfileModal: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#756E65]">{user.email}</p>
+              <p className="text-xs text-[#756E65]">{user.phone || user.email}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {user.role === 'admin' && (
-              <button
-                onClick={() => {
-                  setIsProfileOpen(false);
-                  setIsAdminOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#191918] text-white text-xs font-semibold rounded hover:bg-black transition-colors"
-              >
-                <Shield className="w-3.5 h-3.5 text-amber-400" />
-                <span>Admin Studio</span>
-              </button>
-            )}
 
             <button
               onClick={() => setIsProfileOpen(false)}

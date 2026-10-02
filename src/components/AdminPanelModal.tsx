@@ -14,7 +14,8 @@ import {
   Layers,
   Search,
   RefreshCw,
-  LogOut
+  LogOut,
+  ArrowRight
 } from 'lucide-react';
 import { Product, Order } from '../types';
 import { SafeImage } from './SafeImage';
@@ -28,7 +29,8 @@ export const AdminPanelModal: React.FC = () => {
     products,
     orders,
     user,
-    login,
+    adminLoginWithPin,
+    logout,
     adminAddProduct,
     adminUpdateProduct,
     adminDeleteProduct,
@@ -40,6 +42,10 @@ export const AdminPanelModal: React.FC = () => {
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('All');
+
+  // Admin PIN login state
+  const [adminPin, setAdminPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   // Product Form State (for Add / Edit)
   const [isEditingProduct, setIsEditingProduct] = useState(false);
@@ -54,14 +60,28 @@ export const AdminPanelModal: React.FC = () => {
   const [formImage, setFormImage] = useState('');
   const [formSizes, setFormSizes] = useState('S, M, L, XL');
 
+  const handleCloseAdmin = () => {
+    setIsAdminOpen(false);
+    if (window.location.hash.toLowerCase() === '#admin' || window.location.hash.toLowerCase() === '#/admin') {
+      window.history.pushState('', document.title, window.location.pathname + window.location.search);
+    }
+  };
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = adminLoginWithPin(adminPin);
+    if (!ok) {
+      setPinError('Galt Security PIN! Kripya sahi PIN enter karein.');
+    } else {
+      setAdminPin('');
+      setPinError('');
+    }
+  };
+
   if (!isAdminOpen) return null;
 
   // Verify Admin Permissions
   const isAdmin = user && user.role === 'admin';
-
-  const handleAdminQuickAuthorize = () => {
-    login('admin@barakabizz.com', 'admin');
-  };
 
   // Metrics
   const totalRevenue = orders.reduce((sum, ord) => sum + ord.total, 0);
@@ -180,45 +200,96 @@ export const AdminPanelModal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {isAdmin ? (
-              <span className="text-xs text-white/80 hidden sm:inline">
-                Operator: <strong>{user?.name}</strong>
-              </span>
-            ) : (
-              <button
-                onClick={handleAdminQuickAuthorize}
-                className="px-3 py-1.5 bg-[#B85D36] hover:bg-[#A34E2A] text-white text-xs font-semibold rounded transition-colors"
-              >
-                Sign In as Admin
-              </button>
+            {isAdmin && (
+              <>
+                <span className="text-xs text-white/80 hidden sm:inline">
+                  Operator: <strong>{user?.name}</strong>
+                </span>
+                <button
+                  onClick={() => {
+                    logout();
+                    setPinError('');
+                  }}
+                  className="px-2.5 py-1 text-[11px] bg-red-900/60 hover:bg-red-800 text-white rounded font-medium transition-colors"
+                  title="Lock Admin Console"
+                >
+                  Lock Console
+                </button>
+              </>
             )}
             <button
-              onClick={() => setIsAdminOpen(false)}
+              onClick={handleCloseAdmin}
               className="p-1.5 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+              aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Not authorized warning if user is not admin */}
+        {/* Confidential Admin PIN Login */}
         {!isAdmin ? (
-          <div className="p-12 text-center space-y-4 max-w-md mx-auto">
-            <div className="w-12 h-12 bg-amber-100 text-amber-800 rounded-full mx-auto flex items-center justify-center">
-              <Shield className="w-6 h-6" />
+          <div className="p-8 sm:p-12 text-center space-y-5 max-w-md mx-auto">
+            <div className="w-14 h-14 bg-[#191918] text-amber-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg border border-white/10">
+              <Shield className="w-7 h-7" />
             </div>
-            <h3 className="font-brand text-xl font-bold text-[#141413]">
-              Admin Authentication Required
-            </h3>
-            <p className="text-xs text-[#756E65]">
-              You are currently viewing as a customer. Click below to instantly authorize yourself as the Atelier Administrator.
-            </p>
-            <button
-              onClick={handleAdminQuickAuthorize}
-              className="px-6 py-3 bg-[#191918] hover:bg-black text-white text-xs font-semibold uppercase tracking-wider rounded transition-colors"
-            >
-              Authorize As Admin (admin@barakabizz.com)
-            </button>
+            <div>
+              <span className="text-[10px] tracking-[0.25em] uppercase text-[#B85D36] font-semibold block mb-1">
+                CONFIDENTIAL OWNER ACCESS
+              </span>
+              <h3 className="font-brand text-2xl font-bold text-[#141413]">
+                Atelier Master Console
+              </h3>
+              <p className="text-xs text-[#756E65] mt-1.5">
+                Kripya apna Owner Security PIN enter karke Admin Panel unlock karein.
+              </p>
+            </div>
+
+            <form onSubmit={handlePinSubmit} className="space-y-4 pt-2 text-left">
+              {pinError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg text-center font-medium">
+                  {pinError}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-semibold text-[#544F49] uppercase tracking-wider block mb-1">
+                  Master Security PIN
+                </label>
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  value={adminPin}
+                  onChange={(e) => {
+                    setAdminPin(e.target.value);
+                    setPinError('');
+                  }}
+                  placeholder="Enter PIN (Default: 7860)"
+                  className="w-full text-center text-lg font-mono tracking-[0.3em] py-2.5 bg-[#FAF8F5] border border-[#DDD8CE] rounded-lg focus:outline-none focus:border-[#B85D36]"
+                />
+                <span className="text-[11px] text-[#756E65] mt-1.5 block text-center">
+                  Owner Default PIN: <strong className="font-mono text-[#141413]">7860</strong>
+                </span>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseAdmin}
+                  className="flex-1 py-3 bg-[#EFECE4] hover:bg-[#E5E0D5] text-[#141413] text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-[#191918] hover:bg-black text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <span>Unlock Admin</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </form>
           </div>
         ) : (
           <>
@@ -831,8 +902,8 @@ export const AdminPanelModal: React.FC = () => {
         <div className="px-6 py-3 bg-[#FAF8F5] border-t border-[#E8E4DC] flex justify-between items-center text-xs text-[#756E65]">
           <span>Protected Atelier Admin Portal</span>
           <button
-            onClick={() => setIsAdminOpen(false)}
-            className="px-4 py-1.5 bg-[#EFECE4] hover:bg-[#E5E0D5] text-[#141413] text-xs font-semibold uppercase tracking-wider rounded"
+            onClick={handleCloseAdmin}
+            className="px-4 py-1.5 bg-[#EFECE4] hover:bg-[#E5E0D5] text-[#141413] text-xs font-semibold uppercase tracking-wider rounded cursor-pointer"
           >
             Return to Storefront
           </button>

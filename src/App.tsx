@@ -1,5 +1,5 @@
-import React from 'react';
-import { StoreProvider } from './context/StoreContext';
+import React, { useEffect } from 'react';
+import { StoreProvider, useStore } from './context/StoreContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProductGrid } from './components/ProductGrid';
@@ -15,9 +15,30 @@ import { AdminPanelModal } from './components/AdminPanelModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { ToastContainer } from './components/ToastContainer';
 
+// Discreet Hash Listener: Opens Admin Panel ONLY when URL has #admin or #/admin
+const AdminHashListener: React.FC = () => {
+  const { setIsAdminOpen } = useStore();
+
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#admin' || hash === '#/admin') {
+        setIsAdminOpen(true);
+      }
+    };
+
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, [setIsAdminOpen]);
+
+  return null;
+};
+
 export default function App() {
   return (
     <StoreProvider>
+      <AdminHashListener />
       <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#141413] selection:bg-[#B85D36] selection:text-white">
         {/* Navigation Bar */}
         <Header />

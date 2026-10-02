@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Search, ShoppingBag, User as UserIcon, Shield, Menu, X, Heart } from 'lucide-react';
+import { Search, ShoppingBag, User as UserIcon, Menu, X, Heart } from 'lucide-react';
 import { ProductCategory } from '../types';
 import { BarakaBizzLogo } from './BarakaBizzLogo';
 
@@ -13,7 +13,6 @@ export const Header: React.FC = () => {
     setIsSearchOpen,
     setIsAuthModalOpen,
     setIsProfileOpen,
-    setIsAdminOpen,
     setActiveCategory
   } = useStore();
 
@@ -97,7 +96,7 @@ export const Header: React.FC = () => {
             </button>
           </nav>
 
-          {/* ZONE 3: Primary Actions (Search, Account, Admin, Cart) */}
+          {/* ZONE 3: Primary Actions (Search, Account, Cart) */}
           <div className="flex items-center gap-1 sm:gap-3">
             {/* Search Trigger */}
             <button
@@ -159,17 +158,6 @@ export const Header: React.FC = () => {
               )}
             </button>
 
-            {/* Admin Panel Quick Access */}
-            <button
-              onClick={() => setIsAdminOpen(true)}
-              className="flex items-center gap-1.5 ml-1 sm:ml-2 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-white bg-[#191918] hover:bg-[#B85D36] rounded-md transition-all shadow-sm active:scale-95 shrink-0"
-              title="Open Admin Dashboard"
-            >
-              <Shield className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Admin Studio</span>
-              <span className="sm:hidden text-[11px]">Admin</span>
-            </button>
-
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -219,16 +207,6 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="pt-4 border-t border-[#E8E4DC] flex flex-col gap-2.5">
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setIsAdminOpen(true);
-              }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-semibold text-[#141413] bg-[#EFECE4] rounded-lg"
-            >
-              <Shield className="w-4 h-4 text-[#B85D36]" />
-              <span>Admin Management Dashboard</span>
-            </button>
             {user ? (
               <button
                 onClick={() => {

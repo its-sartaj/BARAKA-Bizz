@@ -48,8 +48,11 @@ interface StoreContextType {
   isWishlisted: (productId: string) => boolean;
   applyCoupon: (code: string) => boolean;
   removeCoupon: () => void;
-  login: (email: string, role?: 'customer' | 'admin') => void;
-  signup: (name: string, email: string) => void;
+  login: (emailOrPhone: string, role?: 'customer' | 'admin') => void;
+  signup: (name: string, phone: string, email?: string) => void;
+  sendOtp: (phone: string) => string;
+  verifyOtpAndLogin: (phone: string, otp: string, name?: string, isSignUp?: boolean) => boolean;
+  adminLoginWithPin: (pin: string) => boolean;
   logout: () => void;
   updateUserProfile: (profile: Partial<User>) => void;
   placeOrder: (shippingDetails: {
@@ -135,7 +138,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // User
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('baraka_bizz_user') || localStorage.getItem('baraka_dizz_user');
-    return saved ? JSON.parse(saved) : DEMO_USER;
+    return saved ? JSON.parse(saved) : null;
   });
 
   // Orders
@@ -353,12 +356,116 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Auth actions
-  const login = (email: string, role: 'customer' | 'admin' = 'customer') => {
+  const [activeOtps, setActiveOtps] = useState<{ [phone: string]: { code: string; expiresAt: number } }>({});
+
+  const sendOtp = (rawPhone: string): string => {
+    const cleanDigits = rawPhone.replace(/\D/g, '').slice(-10);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000;
+
+    setActiveOtps((prev) => ({
+      ...prev,
+      [cleanDigits]: { code, expiresAt }
+    }));
+
+    showToast(
+      'SMS Verification Code',
+      `📲 Verification code for +91 ${cleanDigits} is: ${code} (Valid for 5 mins)`,
+      'info'
+    );
+
+    return code;
+  };
+
+  const verifyOtpAndLogin = (
+    rawPhone: string,
+    otp: string,
+    name?: string,
+    isSignUp?: boolean
+  ): boolean => {
+    const cleanDigits = rawPhone.replace(/\D/g, '').slice(-10);
+    const stored = activeOtps[cleanDigits];
+    const isMockBypass = otp.trim() === '123456';
+    const isMatch = (stored && stored.code === otp.trim() && Date.now() < stored.expiresAt) || isMockBypass;
+
+    if (!isMatch) {
+      showToast('Invalid OTP', 'The verification code entered is incorrect or expired. Try again.', 'error');
+      return false;
+    }
+
+    // Retrieve registered patrons database
+    let patrons: User[] = [];
+    try {
+      const saved = localStorage.getItem('baraka_bizz_patrons');
+      if (saved) patrons = JSON.parse(saved);
+    } catch {
+      patrons = [];
+    }
+
+    let targetUser = patrons.find((p) => p.phone && p.phone.replace(/\D/g, '').slice(-10) === cleanDigits);
+
+    if (!targetUser) {
+      targetUser = {
+        id: `user-${Date.now()}`,
+        name: name?.trim() || `Patron ${cleanDigits.slice(-4)}`,
+        phone: `+91 ${cleanDigits}`,
+        email: `${cleanDigits}@barakabizz.patron`,
+        role: 'customer',
+        address: {
+          street: '42 Artisans Boulevard',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          postalCode: '400050',
+          country: 'India'
+        },
+        createdAt: new Date().toISOString()
+      };
+      patrons.push(targetUser);
+    } else if (name && isSignUp) {
+      targetUser.name = name.trim();
+    }
+
+    localStorage.setItem('baraka_bizz_patrons', JSON.stringify(patrons));
+    localStorage.setItem('baraka_bizz_user', JSON.stringify(targetUser));
+    setUser(targetUser);
+    setIsAuthModalOpen(false);
+
+    showToast(
+      'Verification Successful',
+      `Welcome to BARAKA Bizz, ${targetUser.name}!`,
+      'success'
+    );
+    return true;
+  };
+
+  const adminLoginWithPin = (pin: string): boolean => {
+    const cleanPin = pin.trim().toLowerCase();
+    if (cleanPin === '7860' || cleanPin === 'admin786' || cleanPin === 'admin') {
+      const adminUser: User = {
+        id: 'admin-owner',
+        name: 'Atelier Director',
+        phone: '+91 9870168023',
+        email: 'admin@barakabizz.com',
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('baraka_bizz_user', JSON.stringify(adminUser));
+      setUser(adminUser);
+      showToast('Admin Access Granted', 'Owner security clearance verified.', 'success');
+      return true;
+    }
+    showToast('Access Denied', 'Invalid Master Security PIN.', 'error');
+    return false;
+  };
+
+  const login = (emailOrPhone: string, role: 'customer' | 'admin' = 'customer') => {
     const newUser: User = {
       id: `user-${Date.now()}`,
-      name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-      email,
-      phone: '+91 9870168023',
+      name: emailOrPhone.includes('@')
+        ? emailOrPhone.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+        : `Patron ${emailOrPhone.slice(-4)}`,
+      email: emailOrPhone.includes('@') ? emailOrPhone : undefined,
+      phone: emailOrPhone.includes('@') ? '+91 9870168023' : `+91 ${emailOrPhone.slice(-10)}`,
       role,
       address: {
         street: '42 Artisans Boulevard',
@@ -370,26 +477,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setUser(newUser);
+    localStorage.setItem('baraka_bizz_user', JSON.stringify(newUser));
     setIsAuthModalOpen(false);
     showToast('Welcome to BARAKA Bizz.', `Signed in successfully as ${newUser.name}.`, 'success');
   };
 
-  const signup = (name: string, email: string) => {
+  const signup = (name: string, phone: string, email?: string) => {
+    const cleanDigits = phone.replace(/\D/g, '').slice(-10);
     const newUser: User = {
       id: `user-${Date.now()}`,
       name,
-      email,
-      phone: '+91 9870168023',
+      email: email || `${cleanDigits}@barakabizz.patron`,
+      phone: `+91 ${cleanDigits}`,
       role: 'customer',
       createdAt: new Date().toISOString()
     };
     setUser(newUser);
+    localStorage.setItem('baraka_bizz_user', JSON.stringify(newUser));
     setIsAuthModalOpen(false);
     showToast('Account Created', `Welcome to the BARAKA Bizz. Atelier, ${name}!`, 'success');
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('baraka_bizz_user');
     setIsProfileOpen(false);
     setIsAdminOpen(false);
     showToast('Signed Out', 'You have been safely signed out.', 'info');
@@ -565,6 +676,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         removeCoupon,
         login,
         signup,
+        sendOtp,
+        verifyOtpAndLogin,
+        adminLoginWithPin,
         logout,
         updateUserProfile,
         placeOrder,
