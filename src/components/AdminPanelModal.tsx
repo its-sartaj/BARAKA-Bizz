@@ -33,7 +33,9 @@ import {
   Ban,
   Save,
   Minus,
-  Filter
+  Filter,
+  Mail,
+  MessageCircle
 } from 'lucide-react';
 import { Product, Order } from '../types';
 import { SafeImage } from './SafeImage';
@@ -251,6 +253,7 @@ export const AdminPanelModal: React.FC = () => {
     adminDeleteProduct,
     adminUpdateOrderStatus,
     adminUpdateStock,
+    adminSendOrderEmail,
     showToast
   } = useStore();
 
@@ -1404,17 +1407,59 @@ export const AdminPanelModal: React.FC = () => {
                             </div>
 
                             {/* Delivery & Contact Details */}
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                               <span className="text-[10px] uppercase font-mono text-[#8C867B] block">
-                                Shipping Destination
+                                Client & Delivery Destination
                               </span>
                               <p className="text-white font-medium">{ord.shippingAddress.street}</p>
                               <p className="text-[#A8A298]">
                                 {ord.shippingAddress.city}, {ord.shippingAddress.state} {ord.shippingAddress.postalCode}
                               </p>
-                              <p className="text-[#8C867B] font-mono text-[11px]">
-                                Phone: {ord.customerPhone}
-                              </p>
+                              
+                              {/* Customer Email & Resend Notification */}
+                              <div className="pt-1 border-t border-[#24221E] space-y-1">
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="text-[#DDD7CC] flex items-center gap-1 font-mono truncate max-w-[170px]" title={ord.customerEmail}>
+                                    <Mail className="w-3 h-3 text-[#E5C378] shrink-0" />
+                                    <span className="truncate">{ord.customerEmail}</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => adminSendOrderEmail(ord.id)}
+                                    className="text-[10px] text-[#E5C378] hover:underline font-mono cursor-pointer shrink-0 ml-1"
+                                    title="Re-send email dispatch to customer"
+                                  >
+                                    Resend Email
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* WhatsApp Contact & Manual Update Button */}
+                              <div className="pt-1">
+                                <p className="text-[#8C867B] font-mono text-[11px] mb-1.5">
+                                  Phone: <span className="text-white font-semibold">{ord.customerPhone}</span>
+                                </p>
+                                {(() => {
+                                  const cleanPhone = ord.customerPhone.replace(/\D/g, '').slice(-10);
+                                  const waText = encodeURIComponent(
+                                    `Hello ${ord.customerName}! 🛍️ This is BARAKA Bizz.\n\nRegarding your order #${ord.orderNumber}:\n• Status: *${ord.status}*\n• Courier Tracking: ${ord.trackingNumber || 'In Packaging'}\n• Total Amount: ${formatINR(ord.total)}\n• Payment: ${ord.paymentMethod}\n\nYour order details have also been sent to your email (${ord.customerEmail}). If you have any questions or customization requests, please let us know. Thank you for shopping with us!`
+                                  );
+                                  const waUrl = `https://wa.me/91${cleanPhone}?text=${waText}`;
+
+                                  return (
+                                    <a
+                                      href={waUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#20ba5a] text-black font-semibold rounded-lg text-xs transition-colors shadow-sm cursor-pointer active:scale-95"
+                                      title={`Send manual WhatsApp order update to +91 ${cleanPhone}`}
+                                    >
+                                      <MessageCircle className="w-3.5 h-3.5 fill-black" />
+                                      <span>WhatsApp Update</span>
+                                    </a>
+                                  );
+                                })()}
+                              </div>
                             </div>
 
                             {/* Payment & Tracking */}

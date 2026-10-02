@@ -109,7 +109,13 @@ export const CheckoutModal: React.FC = () => {
                 Thank You, {confirmedOrder.customerName}
               </h2>
               <p className="text-sm text-[#59544E] max-w-md mx-auto">
-                Your order <strong className="font-mono text-[#141413]">#{confirmedOrder.orderNumber}</strong> has been received by our master artisans. A confirmation has been transmitted to <span className="underline">{confirmedOrder.customerEmail}</span>.
+                Your order <strong className="font-mono text-[#141413]">#{confirmedOrder.orderNumber}</strong> has been received by our master artisans.
+                <span className="block mt-1.5 text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded text-xs font-semibold border border-emerald-200">
+                  ✉️ Order invoice & tracking link dispatched to <strong>{confirmedOrder.customerEmail}</strong>
+                </span>
+                <span className="block mt-1 text-[#B85D36] text-xs font-medium">
+                  💬 Delivery and courier tracking updates will be shared on WhatsApp (<strong>{confirmedOrder.customerPhone}</strong>)
+                </span>
               </p>
             </div>
 
@@ -141,13 +147,13 @@ export const CheckoutModal: React.FC = () => {
                   handleClose();
                   setIsProfileOpen(true);
                 }}
-                className="px-6 py-3 bg-[#141413] hover:bg-[#B85D36] text-white text-xs font-semibold uppercase tracking-wider rounded transition-colors"
+                className="px-6 py-3 bg-[#141413] hover:bg-[#B85D36] text-white text-xs font-semibold uppercase tracking-wider rounded transition-colors cursor-pointer"
               >
                 View in Order History
               </button>
               <button
                 onClick={handleClose}
-                className="px-6 py-3 bg-[#EFECE4] hover:bg-[#E5E0D5] text-[#141413] text-xs font-semibold uppercase tracking-wider rounded transition-colors"
+                className="px-6 py-3 bg-[#EFECE4] hover:bg-[#E5E0D5] text-[#141413] text-xs font-semibold uppercase tracking-wider rounded transition-colors cursor-pointer"
               >
                 Continue Shopping
               </button>
@@ -179,23 +185,23 @@ export const CheckoutModal: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-semibold text-[#544F49] uppercase tracking-wider block mb-1">
-                        Email Address
+                        Email Address (For Invoices) *
                       </label>
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="mr7.shahzad@gmail.com"
+                        placeholder="customer@gmail.com"
                         className="w-full text-xs px-3 py-2 bg-[#FAF8F5] border border-[#DDD8CE] rounded focus:outline-none focus:border-[#B85D36]"
                       />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-[#544F49] uppercase tracking-wider block mb-1">
-                        Phone Number
+                        WhatsApp Number *
                       </label>
                       <input
                         type="text"

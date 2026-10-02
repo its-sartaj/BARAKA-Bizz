@@ -752,7 +752,7 @@ export const UserProfileModal: React.FC = () => {
 
               <div>
                 <label className="text-xs font-semibold text-[#544F49] uppercase tracking-wider block mb-1">
-                  Direct Contact Telephone
+                  WhatsApp Mobile Number (Direct Contact)
                 </label>
                 <input
                   type="text"
@@ -761,6 +761,9 @@ export const UserProfileModal: React.FC = () => {
                   placeholder="+91 9870168023"
                   className="w-full text-xs px-3 py-2 bg-[#FAF8F5] border border-[#DDD8CE] rounded focus:outline-none focus:border-[#B85D36]"
                 />
+                <span className="text-[11px] text-[#756E65] mt-1 block">
+                  Used by our atelier team to dispatch WhatsApp tracking and courier updates.
+                </span>
               </div>
 
               <div>

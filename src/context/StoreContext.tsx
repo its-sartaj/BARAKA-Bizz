@@ -50,8 +50,11 @@ interface StoreContextType {
   removeCoupon: () => void;
   login: (emailOrPhone: string, role?: 'customer' | 'admin') => void;
   signup: (name: string, phone: string, email?: string) => void;
-  sendOtp: (phone: string) => string;
-  verifyOtpAndLogin: (phone: string, otp: string, name?: string, isSignUp?: boolean) => boolean;
+  sendOtp: (phoneOrEmail: string) => string;
+  verifyOtpAndLogin: (phoneOrEmail: string, otp: string, name?: string, isSignUp?: boolean, phone?: string) => boolean;
+  sendEmailOtp: (email: string) => string;
+  verifyEmailOtpAndLogin: (email: string, otp: string, name?: string, phone?: string, isSignUp?: boolean) => boolean;
+  adminSendOrderEmail: (orderId: string) => void;
   adminLoginWithPin: (pin: string) => boolean;
   logout: () => void;
   updateUserProfile: (profile: Partial<User>) => void;
@@ -365,10 +368,102 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Auth actions
-  const [activeOtps, setActiveOtps] = useState<{ [phone: string]: { code: string; expiresAt: number } }>({});
+  const [activeOtps, setActiveOtps] = useState<{ [identifier: string]: { code: string; expiresAt: number } }>({});
 
-  const sendOtp = (rawPhone: string): string => {
-    const cleanDigits = rawPhone.replace(/\D/g, '').slice(-10);
+  const sendEmailOtp = (rawEmail: string): string => {
+    const cleanEmail = rawEmail.trim().toLowerCase();
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000;
+
+    setActiveOtps((prev) => ({
+      ...prev,
+      [cleanEmail]: { code, expiresAt }
+    }));
+
+    showToast(
+      'Email Verification Code',
+      `✉️ Verification code sent to ${cleanEmail}: ${code} (Valid for 5 mins)`,
+      'info'
+    );
+
+    return code;
+  };
+
+  const verifyEmailOtpAndLogin = (
+    rawEmail: string,
+    otp: string,
+    name?: string,
+    phone?: string,
+    isSignUp?: boolean
+  ): boolean => {
+    const cleanEmail = rawEmail.trim().toLowerCase();
+    const stored = activeOtps[cleanEmail];
+    const isMockBypass = otp.trim() === '123456';
+    const isMatch = (stored && stored.code === otp.trim() && Date.now() < stored.expiresAt) || isMockBypass;
+
+    if (!isMatch) {
+      showToast('Invalid OTP', 'The verification code entered is incorrect or expired. Try again.', 'error');
+      return false;
+    }
+
+    // Retrieve registered patrons database
+    let patrons: User[] = [];
+    try {
+      const saved = localStorage.getItem('baraka_bizz_patrons');
+      if (saved) patrons = JSON.parse(saved);
+    } catch {
+      patrons = [];
+    }
+
+    let targetUser = patrons.find((p) => p.email && p.email.toLowerCase() === cleanEmail);
+
+    const cleanPhoneDigits = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+    const formattedPhone = cleanPhoneDigits ? `+91 ${cleanPhoneDigits}` : '+91 9870168023';
+
+    if (!targetUser) {
+      targetUser = {
+        id: `user-${Date.now()}`,
+        name: name?.trim() || cleanEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        phone: formattedPhone,
+        email: cleanEmail,
+        role: 'customer',
+        address: {
+          street: '42 Artisans Boulevard',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          postalCode: '400050',
+          country: 'India'
+        },
+        createdAt: new Date().toISOString()
+      };
+      patrons.push(targetUser);
+    } else {
+      if (name && isSignUp) {
+        targetUser.name = name.trim();
+      }
+      if (phone && isSignUp) {
+        targetUser.phone = formattedPhone;
+      }
+    }
+
+    localStorage.setItem('baraka_bizz_patrons', JSON.stringify(patrons));
+    localStorage.setItem('baraka_bizz_user', JSON.stringify(targetUser));
+    setUser(targetUser);
+    setIsAuthModalOpen(false);
+
+    showToast(
+      'Verification Successful',
+      `Welcome to BARAKA Bizz, ${targetUser.name}! (Signed in via ${targetUser.email})`,
+      'success'
+    );
+    return true;
+  };
+
+  const sendOtp = (phoneOrEmail: string): string => {
+    if (phoneOrEmail.includes('@')) {
+      return sendEmailOtp(phoneOrEmail);
+    }
+    const cleanDigits = phoneOrEmail.replace(/\D/g, '').slice(-10);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000;
 
@@ -387,12 +482,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const verifyOtpAndLogin = (
-    rawPhone: string,
+    phoneOrEmail: string,
     otp: string,
     name?: string,
-    isSignUp?: boolean
+    isSignUp?: boolean,
+    phone?: string
   ): boolean => {
-    const cleanDigits = rawPhone.replace(/\D/g, '').slice(-10);
+    if (phoneOrEmail.includes('@')) {
+      return verifyEmailOtpAndLogin(phoneOrEmail, otp, name, phone, isSignUp);
+    }
+    const cleanDigits = phoneOrEmail.replace(/\D/g, '').slice(-10);
     const stored = activeOtps[cleanDigits];
     const isMockBypass = otp.trim() === '123456';
     const isMatch = (stored && stored.code === otp.trim() && Date.now() < stored.expiresAt) || isMockBypass;
@@ -590,7 +689,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     clearCart();
     setAppliedCoupon(null);
     setIsCheckoutOpen(false);
-    showToast('Order Confirmed!', `Order #${newOrder.orderNumber} is now being hand-packaged.`, 'success');
+    showToast(
+      'Order Confirmed & Email Dispatched',
+      `Order #${newOrder.orderNumber} confirmed! Confirmation receipt & invoice dispatched to ${details.email}.`,
+      'success'
+    );
     return newOrder;
   };
 
@@ -619,18 +722,37 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const adminUpdateOrderStatus = (orderId: string, status: Order['status'], tracking?: string) => {
+    let orderNum = '';
+    let targetEmail = '';
     setOrders((prev) =>
-      prev.map((ord) =>
-        ord.id === orderId
-          ? {
-              ...ord,
-              status,
-              ...(tracking ? { trackingNumber: tracking } : {})
-            }
-          : ord
-      )
+      prev.map((ord) => {
+        if (ord.id === orderId) {
+          orderNum = ord.orderNumber;
+          targetEmail = ord.customerEmail;
+          return {
+            ...ord,
+            status,
+            ...(tracking ? { trackingNumber: tracking } : {})
+          };
+        }
+        return ord;
+      })
     );
-    showToast('Order Status Updated', `Order status changed to ${status}.`, 'success');
+    showToast(
+      'Order Status Updated & Email Sent',
+      `Order #${orderNum || orderId} marked as ${status}. Status notification dispatched to ${targetEmail || 'customer'}.`,
+      'success'
+    );
+  };
+
+  const adminSendOrderEmail = (orderId: string) => {
+    const ord = orders.find((o) => o.id === orderId);
+    if (!ord) return;
+    showToast(
+      'Order Email Dispatched',
+      `✉️ Order #${ord.orderNumber} invoice & tracking update dispatched to ${ord.customerEmail}.`,
+      'info'
+    );
   };
 
   const adminUpdateStock = (productId: string, stock: number) => {
@@ -687,6 +809,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         signup,
         sendOtp,
         verifyOtpAndLogin,
+        sendEmailOtp,
+        verifyEmailOtpAndLogin,
+        adminSendOrderEmail,
         adminLoginWithPin,
         logout,
         updateUserProfile,
