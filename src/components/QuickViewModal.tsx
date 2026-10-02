@@ -98,7 +98,7 @@ export const QuickViewModal: React.FC = () => {
       quickViewProduct.id,
       ratingInput,
       commentInput,
-      reviewerNameInput || user?.name || 'Artisanal Patron'
+      reviewerNameInput || user?.name || 'Verified Customer'
     );
 
     setReviewSuccess(true);
@@ -179,7 +179,7 @@ export const QuickViewModal: React.FC = () => {
                   : 'border-transparent text-[#756E65] hover:text-[#141413]'
               }`}
             >
-              <span>Patron Reviews</span>
+              <span>Customer Reviews</span>
               <span className="font-mono text-[10px] bg-[#EFECE4] px-1.5 py-0.5 rounded text-[#141413]">
                 {productReviews.length}
               </span>
@@ -200,7 +200,7 @@ export const QuickViewModal: React.FC = () => {
                   <button
                     onClick={() => setActiveModalTab('reviews')}
                     className="flex items-center gap-1.5 hover:text-[#141413] transition-colors group cursor-pointer"
-                    title="View patron reviews"
+                    title="View customer reviews"
                   >
                     <div className="flex items-center text-amber-500">
                       <Star className="w-3.5 h-3.5 fill-current" />
@@ -390,7 +390,7 @@ export const QuickViewModal: React.FC = () => {
                     ))}
                   </div>
                   <span className="text-[11px] text-[#756E65]">
-                    Based on {productReviews.length} patron reviews
+                    Based on {productReviews.length} customer reviews
                   </span>
                 </div>
 
@@ -416,7 +416,7 @@ export const QuickViewModal: React.FC = () => {
               {/* Action: Toggle Write Review Form */}
               <div className="flex items-center justify-between pt-1">
                 <h3 className="font-brand font-bold text-base text-[#141413]">
-                  Patron Evaluations
+                  Customer Reviews
                 </h3>
                 {!isWritingReview && (
                   <button
@@ -533,7 +533,7 @@ export const QuickViewModal: React.FC = () => {
                   {/* Submit Button */}
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[11px] text-[#8C867D]">
-                      Verified as an authentic BARAKA Bizz. patron
+                      Verified as an authentic BARAKA Bizz customer
                     </span>
                     <button
                       type="submit"
@@ -552,7 +552,7 @@ export const QuickViewModal: React.FC = () => {
                   <div className="text-center py-10 bg-[#FAF8F5] rounded-lg border border-dashed border-[#DDD8CE] p-6 space-y-2">
                     <p className="text-xs font-medium text-[#141413]">No client reviews yet.</p>
                     <p className="text-[11px] text-[#756E65]">
-                      Be the first patron to share tailoring notes and review this silhouette.
+                      Be the first customer to share tailoring notes and review this silhouette.
                     </p>
                     <button
                       onClick={() => setIsWritingReview(true)}
@@ -573,7 +573,7 @@ export const QuickViewModal: React.FC = () => {
                           {rev.verifiedPurchase && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-[#3C6E47] font-medium bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
                               <BadgeCheck className="w-3 h-3" />
-                              <span>Verified Patron</span>
+                              <span>Verified Customer</span>
                             </span>
                           )}
                         </div>

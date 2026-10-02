@@ -166,11 +166,16 @@ export const UserProfileModal: React.FC = () => {
         <div className="p-6 border-b border-[#E8E4DC] flex items-center justify-between bg-[#FAF8F5]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#191918] text-white flex items-center justify-center font-bold text-sm">
-              {user.name.charAt(0)}
+              {(user.name && !user.name.toLowerCase().includes('patron') ? user.name : 'Customer').charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-brand text-lg font-bold text-[#141413]">{user.name}</h3>
+                <h3 className="font-brand text-lg font-bold text-[#141413]">
+                  {user.name && !user.name.toLowerCase().includes('patron') ? user.name : 'Customer Account'}
+                </h3>
+                <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full">
+                  Verified Customer
+                </span>
                 {user.role === 'admin' && (
                   <span className="bg-[#B85D36] text-white text-[10px] font-semibold uppercase px-2 py-0.5 rounded">
                     Admin Staff
@@ -567,7 +572,7 @@ export const UserProfileModal: React.FC = () => {
                               <span className="text-[11px] text-[#8C867D]">Today, 14:15</span>
                             </div>
                             <p className="text-[11px] text-[#756E65]">
-                              Signed by patron at {trackedOrder.shippingAddress.city}, {trackedOrder.shippingAddress.country}.
+                              Signed by customer at {trackedOrder.shippingAddress.city}, {trackedOrder.shippingAddress.country}.
                             </p>
                           </div>
                         )}

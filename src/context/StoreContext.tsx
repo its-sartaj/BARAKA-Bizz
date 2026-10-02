@@ -138,7 +138,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // User
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('baraka_bizz_user') || localStorage.getItem('baraka_dizz_user');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      const parsed: User = JSON.parse(saved);
+      if (parsed && parsed.name && parsed.name.toLowerCase().startsWith('patron')) {
+        parsed.name = parsed.name.replace(/patron/i, 'Customer');
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
   });
 
   // Orders
@@ -407,9 +416,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!targetUser) {
       targetUser = {
         id: `user-${Date.now()}`,
-        name: name?.trim() || `Patron ${cleanDigits.slice(-4)}`,
+        name: name?.trim() || `Customer ${cleanDigits.slice(-4)}`,
         phone: `+91 ${cleanDigits}`,
-        email: `${cleanDigits}@barakabizz.patron`,
+        email: `${cleanDigits}@barakabizz.in`,
         role: 'customer',
         address: {
           street: '42 Artisans Boulevard',
@@ -463,7 +472,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: `user-${Date.now()}`,
       name: emailOrPhone.includes('@')
         ? emailOrPhone.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-        : `Patron ${emailOrPhone.slice(-4)}`,
+        : `Customer ${emailOrPhone.slice(-4)}`,
       email: emailOrPhone.includes('@') ? emailOrPhone : undefined,
       phone: emailOrPhone.includes('@') ? '+91 9870168023' : `+91 ${emailOrPhone.slice(-10)}`,
       role,
@@ -486,8 +495,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const cleanDigits = phone.replace(/\D/g, '').slice(-10);
     const newUser: User = {
       id: `user-${Date.now()}`,
-      name,
-      email: email || `${cleanDigits}@barakabizz.patron`,
+      name: name?.trim() || `Customer ${cleanDigits.slice(-4)}`,
+      email: email || `${cleanDigits}@barakabizz.in`,
       phone: `+91 ${cleanDigits}`,
       role: 'customer',
       createdAt: new Date().toISOString()
@@ -495,7 +504,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setUser(newUser);
     localStorage.setItem('baraka_bizz_user', JSON.stringify(newUser));
     setIsAuthModalOpen(false);
-    showToast('Account Created', `Welcome to the BARAKA Bizz. Atelier, ${name}!`, 'success');
+    showToast('Account Created', `Welcome to BARAKA Bizz, ${newUser.name}!`, 'success');
   };
 
   const logout = () => {

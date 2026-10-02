@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { X, Smartphone, User as UserIcon, ArrowRight, ShieldCheck, RefreshCw, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { X, Smartphone, User as UserIcon, ArrowRight, ShieldCheck, RefreshCw, CheckCircle2, ArrowLeft, UserPlus, LogIn } from 'lucide-react';
 import { BarakaBizzLogo } from './BarakaBizzLogo';
 
 export const AuthModal: React.FC = () => {
@@ -112,19 +112,26 @@ export const AuthModal: React.FC = () => {
           <div>
             <BarakaBizzLogo className="h-8 w-auto mb-2" />
             <span className="text-[10px] tracking-[0.25em] uppercase text-[#B85D36] font-semibold block">
-              ATELIER CLIENT PRIVILEGES
+              CUSTOMER PORTAL · ग्राहक खाता
             </span>
             <h3 className="font-brand text-lg font-bold text-[#141413]">
               {step === 'otp'
-                ? 'Mobile Number OTP Verification'
-                : authMode === 'signin'
-                ? 'Sign In with Mobile OTP'
-                : 'Create Account with Mobile Number'}
+                ? 'Mobile OTP Verification'
+                : authMode === 'signup'
+                ? 'Create Customer Account'
+                : 'Customer Sign In'}
             </h3>
+            <p className="text-xs text-[#756E65] mt-0.5">
+              {step === 'otp'
+                ? `Enter the 6-digit verification code sent to +91 ${phone}`
+                : authMode === 'signup'
+                ? 'Enter your name and mobile number to register your customer account'
+                : 'Sign in with your mobile number to view orders & manage account'}
+            </p>
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 text-[#756E65] hover:text-[#141413] rounded-full hover:bg-white transition-colors"
+            className="p-1.5 text-[#756E65] hover:text-[#141413] rounded-full hover:bg-white transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -133,32 +140,34 @@ export const AuthModal: React.FC = () => {
 
         {/* Tab switch (Only visible in Phone step) */}
         {step === 'phone' && (
-          <div className="flex border-b border-[#E8E4DC] text-xs font-semibold uppercase tracking-wider">
+          <div className="flex border-b border-[#E8E4DC] text-xs font-semibold uppercase tracking-wider bg-[#FAF8F5]">
             <button
               onClick={() => {
                 setAuthMode('signup');
                 setError('');
               }}
-              className={`flex-1 py-3 text-center transition-colors ${
+              className={`flex-1 py-3 text-center transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                 authMode === 'signup'
-                  ? 'border-b-2 border-[#B85D36] text-[#141413] bg-white'
-                  : 'text-[#756E65] bg-[#FAF8F5] hover:text-[#141413]'
+                  ? 'border-b-2 border-[#B85D36] text-[#141413] bg-white font-bold'
+                  : 'text-[#756E65] hover:text-[#141413]'
               }`}
             >
-              Sign Up (Register)
+              <UserPlus className="w-4 h-4 text-[#B85D36]" />
+              <span>Create Account (Sign Up)</span>
             </button>
             <button
               onClick={() => {
                 setAuthMode('signin');
                 setError('');
               }}
-              className={`flex-1 py-3 text-center transition-colors ${
+              className={`flex-1 py-3 text-center transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                 authMode === 'signin'
-                  ? 'border-b-2 border-[#B85D36] text-[#141413] bg-white'
-                  : 'text-[#756E65] bg-[#FAF8F5] hover:text-[#141413]'
+                  ? 'border-b-2 border-[#B85D36] text-[#141413] bg-white font-bold'
+                  : 'text-[#756E65] hover:text-[#141413]'
               }`}
             >
-              Sign In
+              <LogIn className="w-4 h-4 text-[#B85D36]" />
+              <span>Sign In (Login)</span>
             </button>
           </div>
         )}
@@ -178,7 +187,7 @@ export const AuthModal: React.FC = () => {
               {authMode === 'signup' && (
                 <div>
                   <label className="text-xs font-semibold text-[#544F49] uppercase tracking-wider block mb-1">
-                    Full Name (Aapka Naam)
+                    Customer Full Name (Aapka Poora Naam) *
                   </label>
                   <div className="relative">
                     <UserIcon className="w-4 h-4 text-[#8C867D] absolute left-3 top-3" />
@@ -191,12 +200,15 @@ export const AuthModal: React.FC = () => {
                       className="w-full text-xs pl-9 pr-3 py-2.5 bg-[#FAF8F5] border border-[#DDD8CE] rounded-lg focus:outline-none focus:border-[#B85D36]"
                     />
                   </div>
+                  <span className="text-[11px] text-[#756E65] mt-1 block">
+                    Yeh naam aapke orders aur profile par save hoga.
+                  </span>
                 </div>
               )}
 
               <div>
                 <label className="text-xs font-semibold text-[#544F49] uppercase tracking-wider block mb-1">
-                  Mobile Number (10 Digits)
+                  Mobile Number (10 Digits) *
                 </label>
                 <div className="flex">
                   <div className="px-3 py-2.5 bg-[#EFECE4] border border-r-0 border-[#DDD8CE] rounded-l-lg text-xs font-semibold text-[#141413] flex items-center gap-1.5 select-none">
@@ -212,17 +224,30 @@ export const AuthModal: React.FC = () => {
                     className="flex-1 text-xs px-3 py-2.5 bg-[#FAF8F5] border border-[#DDD8CE] rounded-r-lg focus:outline-none focus:border-[#B85D36] font-mono tracking-wider"
                   />
                 </div>
-                <span className="text-[11px] text-[#756E65] mt-1 block">
-                  Aapke is number par 6-digit ka verification OTP bheja jayega.
-                </span>
+                <div className="flex items-center justify-between mt-1 text-[11px] text-[#756E65]">
+                  <span>6-digit OTP verification code aayega.</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhone('9870168023');
+                      if (authMode === 'signup' && !name) setName('Sartaj Ali');
+                      setError('');
+                    }}
+                    className="text-[#B85D36] hover:underline font-semibold cursor-pointer"
+                  >
+                    Demo Fill
+                  </button>
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-[#B85D36] hover:bg-[#A34E2A] text-white text-xs font-semibold uppercase tracking-widest rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+                className="w-full py-3.5 bg-[#B85D36] hover:bg-[#A34E2A] text-white text-xs font-semibold uppercase tracking-widest rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 active:scale-95"
               >
                 <Smartphone className="w-4 h-4" />
-                <span>Get OTP / Verification Code</span>
+                <span>
+                  {authMode === 'signup' ? 'Send OTP & Create Customer Account' : 'Send OTP & Sign In'}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 

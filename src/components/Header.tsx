@@ -128,19 +128,23 @@ export const Header: React.FC = () => {
               )}
             </button>
 
-            {/* Account Icon */}
+            {/* Customer Account Button */}
             <button
               onClick={handleAccountClick}
-              className="p-2.5 text-[#383531] hover:text-[#141413] hover:bg-[#F0ECE4] rounded-full transition-colors relative flex items-center gap-1.5"
-              title={user ? `Signed in as ${user.name}` : 'Sign In / Account'}
-              aria-label="User Account"
+              className="px-2.5 py-1.5 sm:px-3 text-[#383531] hover:text-[#141413] hover:bg-[#F0ECE4] rounded-full transition-all relative flex items-center gap-1.5 border border-[#E8E4DC] hover:border-[#D0C9BD] cursor-pointer shadow-2xs"
+              title={user ? `Customer Account: ${user.name}` : 'Customer Sign In / Create Account'}
+              aria-label="Customer Account"
             >
-              <UserIcon className="w-5 h-5 stroke-[1.75]" />
-              {user && (
-                <span className="hidden xl:inline text-xs font-semibold text-[#141413] max-w-[85px] truncate">
-                  {user.name.split(' ')[0]}
-                </span>
-              )}
+              <UserIcon className="w-4.5 h-4.5 stroke-[1.75]" />
+              <span className="text-xs font-semibold text-[#141413]">
+                {user ? (
+                  !user.name || user.name.toLowerCase().includes('patron') || user.name.toLowerCase().includes('customer')
+                    ? 'My Account'
+                    : user.name.split(' ')[0]
+                ) : (
+                  'Sign In'
+                )}
+              </span>
             </button>
 
             {/* Shopping Cart Trigger */}
@@ -215,7 +219,7 @@ export const Header: React.FC = () => {
                 }}
                 className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-[#141413] rounded-lg text-center"
               >
-                Atelier Account ({user.name})
+                My Account ({user.name.toLowerCase().includes('patron') || user.name.toLowerCase().includes('customer') ? 'Customer' : user.name})
               </button>
             ) : (
               <button
@@ -225,7 +229,7 @@ export const Header: React.FC = () => {
                 }}
                 className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-[#141413] rounded-lg text-center"
               >
-                Sign In / Register
+                Customer Sign In / Register
               </button>
             )}
           </div>
