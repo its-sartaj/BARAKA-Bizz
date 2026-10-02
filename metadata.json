@@ -1,0 +1,6 @@
+{
+  "name": "BARAKA Bizz. | Luxury Apparel & Artisanal Wear",
+  "description": "Discover BARAKA Bizz. - Where Premium Fabric Meets Timeless Design. Handcrafted luxury clothing, selvedge denim, pure linen, and artisanal leather goods.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Syne', sans-serif;
+    --font-serif: 'Playfair Display', serif;
+    --font-body: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: #FAF8F5;
+    color: #141413;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-brand {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+.font-editorial {
+  font-family: var(--font-serif);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Custom smooth floating clothing keyframes */
+@keyframes floatGentle1 {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(1.5deg);
+  }
+}
+
+@keyframes floatGentle2 {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(-2deg);
+  }
+}
+
+@keyframes floatGentle3 {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+.animate-float-1 {
+  animation: floatGentle1 6s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: floatGentle2 8s ease-in-out infinite 1s;
+}
+
+.animate-float-3 {
+  animation: floatGentle3 7s ease-in-out infinite 0.5s;
+}
+
+/* Custom delicate scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F2EFE9;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5CFC5;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B3AAA0;
+}
