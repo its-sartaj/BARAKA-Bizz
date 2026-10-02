@@ -2,6 +2,20 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem, User, Order, ToastMessage, ProductCategory, ProductReview } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS } from '../data/initialProducts';
 import { INITIAL_REVIEWS } from '../data/initialReviews';
+import {
+  FIREBASE_RTDB_URL,
+  fetchFirebaseProducts,
+  saveFirebaseProduct,
+  deleteFirebaseProduct,
+  updateFirebaseStock,
+  fetchFirebaseOrders,
+  saveFirebaseOrder,
+  updateFirebaseOrderStatus,
+  fetchFirebaseReviews,
+  saveFirebaseReview,
+  syncAllToFirebase,
+  listenToFirebaseRealtime
+} from '../services/firebaseRealtime';
 
 interface StoreContextType {
   products: Product[];
@@ -18,6 +32,13 @@ interface StoreContextType {
   getProductReviews: (productId: string) => ProductReview[];
   addProductReview: (productId: string, rating: number, comment: string, reviewerName?: string) => void;
   
+  // Firebase Realtime DB
+  firebaseStatus: 'connected' | 'connecting' | 'disconnected';
+  isFirebaseSyncing: boolean;
+  lastFirebaseSyncTime: string;
+  forceSyncFirebase: () => Promise<void>;
+  pushAllToFirebase: () => Promise<void>;
+
   // UI states
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
@@ -192,6 +213,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Firebase Realtime DB States
+  const [firebaseStatus, setFirebaseStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+  const [isFirebaseSyncing, setIsFirebaseSyncing] = useState<boolean>(false);
+  const [lastFirebaseSyncTime, setLastFirebaseSyncTime] = useState<string>('');
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem('baraka_bizz_products', JSON.stringify(products));
@@ -221,6 +247,150 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('baraka_bizz_reviews', JSON.stringify(reviews));
   }, [reviews]);
 
+  // Real-time synchronization with Firebase RTDB
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    let isCancelled = false;
+
+    const initFirebase = async () => {
+      try {
+        setFirebaseStatus('connecting');
+        const [remoteProducts, remoteOrders, remoteReviews] = await Promise.all([
+          fetchFirebaseProducts(),
+          fetchFirebaseOrders(),
+          fetchFirebaseReviews()
+        ]);
+
+        if (isCancelled) return;
+
+        // If Firebase is completely empty, automatically seed with current catalogue!
+        if (!remoteProducts || remoteProducts.length === 0) {
+          const toSeedProducts = products && products.length > 0 ? products : INITIAL_PRODUCTS;
+          const toSeedOrders = orders && orders.length > 0 ? orders : INITIAL_ORDERS;
+          const toSeedReviews = reviews && reviews.length > 0 ? reviews : INITIAL_REVIEWS;
+          await syncAllToFirebase(toSeedProducts, toSeedOrders, toSeedReviews);
+          setProducts(toSeedProducts);
+          setOrders(toSeedOrders);
+          setReviews(toSeedReviews);
+        } else {
+          setProducts(remoteProducts);
+          if (remoteOrders && remoteOrders.length > 0) {
+            setOrders(remoteOrders);
+          }
+          if (remoteReviews && remoteReviews.length > 0) {
+            setReviews(remoteReviews);
+          }
+        }
+
+        const timeStr = new Date().toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        setLastFirebaseSyncTime(timeStr);
+        setFirebaseStatus('connected');
+      } catch (err) {
+        console.warn('Firebase RTDB Init error:', err);
+        setFirebaseStatus('disconnected');
+      }
+
+      // Start Real-Time SSE listener
+      if (!isCancelled) {
+        unsubscribe = listenToFirebaseRealtime({
+          onProductsUpdate: (newProds) => {
+            if (newProds && newProds.length > 0) {
+              setProducts(newProds);
+              setLastFirebaseSyncTime(
+                new Date().toLocaleTimeString('en-IN', {
+                  timeZone: 'Asia/Kolkata',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })
+              );
+            }
+          },
+          onOrdersUpdate: (newOrds) => {
+            if (newOrds) {
+              setOrders(newOrds);
+              setLastFirebaseSyncTime(
+                new Date().toLocaleTimeString('en-IN', {
+                  timeZone: 'Asia/Kolkata',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })
+              );
+            }
+          },
+          onStatusChange: (st) => {
+            setFirebaseStatus(st);
+          }
+        });
+      }
+    };
+
+    initFirebase();
+
+    return () => {
+      isCancelled = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  const forceSyncFirebase = async () => {
+    setIsFirebaseSyncing(true);
+    try {
+      const [remoteProducts, remoteOrders, remoteReviews] = await Promise.all([
+        fetchFirebaseProducts(),
+        fetchFirebaseOrders(),
+        fetchFirebaseReviews()
+      ]);
+      if (remoteProducts && remoteProducts.length > 0) setProducts(remoteProducts);
+      if (remoteOrders && remoteOrders.length > 0) setOrders(remoteOrders);
+      if (remoteReviews && remoteReviews.length > 0) setReviews(remoteReviews);
+
+      const timeStr = new Date().toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      setLastFirebaseSyncTime(timeStr);
+      setFirebaseStatus('connected');
+      showToast('Firebase Real-Time Synced', 'Fetched latest data from Firebase Realtime Database.', 'success');
+    } catch {
+      showToast('Sync Error', 'Could not refresh from Firebase RTDB. Check network.', 'error');
+    } finally {
+      setIsFirebaseSyncing(false);
+    }
+  };
+
+  const pushAllToFirebase = async () => {
+    setIsFirebaseSyncing(true);
+    try {
+      const ok = await syncAllToFirebase(products, orders, reviews);
+      if (ok) {
+        const timeStr = new Date().toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        setLastFirebaseSyncTime(timeStr);
+        setFirebaseStatus('connected');
+        showToast('Real-Time Database Updated', 'Full catalog, orders, and reviews uploaded to Firebase RTDB.', 'success');
+      } else {
+        showToast('Sync Incomplete', 'Could not upload all records to Firebase RTDB.', 'error');
+      }
+    } catch {
+      showToast('Sync Error', 'Failed to upload to Firebase RTDB.', 'error');
+    } finally {
+      setIsFirebaseSyncing(false);
+    }
+  };
+
   const getProductReviews = (productId: string) => {
     return reviews.filter((r) => r.productId === productId);
   };
@@ -239,23 +409,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const updatedReviews = [newReview, ...reviews];
     setReviews(updatedReviews);
+    saveFirebaseReview(newReview).catch(console.error);
 
     // Compute updated rating & review count for the product
     const allProdReviews = updatedReviews.filter((r) => r.productId === productId);
     const avgRating = allProdReviews.reduce((sum, r) => sum + r.rating, 0) / allProdReviews.length;
     const roundedRating = Number(avgRating.toFixed(1));
 
+    let updatedTargetProd: Product | null = null;
     setProducts((prev) =>
-      prev.map((p) =>
-        p.id === productId
-          ? {
-              ...p,
-              rating: roundedRating,
-              reviewsCount: allProdReviews.length
-            }
-          : p
-      )
+      prev.map((p) => {
+        if (p.id === productId) {
+          updatedTargetProd = {
+            ...p,
+            rating: roundedRating,
+            reviewsCount: allProdReviews.length
+          };
+          return updatedTargetProd;
+        }
+        return p;
+      })
     );
+
+    if (updatedTargetProd) {
+      saveFirebaseProduct(updatedTargetProd).catch(console.error);
+    }
 
     setQuickViewProduct((prev) =>
       prev && prev.id === productId
@@ -269,7 +447,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     showToast(
       'Review Published',
-      `Thank you ${author}! Your ${rating}-star feedback has been published.`,
+      `Thank you ${author}! Your ${rating}-star feedback has been published & synced to Firebase.`,
       'success'
     );
   };
@@ -676,9 +854,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((prod) => {
         const cartMatch = cart.find((c) => c.productId === prod.id);
         if (cartMatch) {
+          const newStock = Math.max(0, prod.stock - cartMatch.quantity);
+          updateFirebaseStock(prod.id, newStock).catch(console.error);
           return {
             ...prod,
-            stock: Math.max(0, prod.stock - cartMatch.quantity)
+            stock: newStock
           };
         }
         return prod;
@@ -686,12 +866,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
 
     setOrders((prev) => [newOrder, ...prev]);
+    saveFirebaseOrder(newOrder).catch(console.error);
     clearCart();
     setAppliedCoupon(null);
     setIsCheckoutOpen(false);
     showToast(
       'Order Confirmed & Email Dispatched',
-      `Order #${newOrder.orderNumber} confirmed! Confirmation receipt & invoice dispatched to ${details.email}.`,
+      `Order #${newOrder.orderNumber} confirmed! Real-time saved to Firebase & dispatched to ${details.email}.`,
       'success'
     );
     return newOrder;
@@ -707,18 +888,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       sku
     };
     setProducts((prev) => [product, ...prev]);
-    showToast('Product Created', `${product.name} was successfully added to inventory.`, 'success');
+    saveFirebaseProduct(product).catch(console.error);
+    showToast('Product Created', `${product.name} saved to catalog & synced to Firebase in Real Time.`, 'success');
   };
 
   const adminUpdateProduct = (updatedProd: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updatedProd.id ? updatedProd : p)));
-    showToast('Product Updated', `${updatedProd.name} changes have been published.`, 'success');
+    saveFirebaseProduct(updatedProd).catch(console.error);
+    showToast('Product Updated', `${updatedProd.name} updated & synced to Firebase in Real Time.`, 'success');
   };
 
   const adminDeleteProduct = (productId: string) => {
     const prod = products.find((p) => p.id === productId);
     setProducts((prev) => prev.filter((p) => p.id !== productId));
-    showToast('Product Deleted', `${prod?.name || 'Item'} was removed from catalog.`, 'info');
+    deleteFirebaseProduct(productId).catch(console.error);
+    showToast('Product Deleted', `${prod?.name || 'Item'} deleted from catalog & Firebase RTDB.`, 'info');
   };
 
   const adminUpdateOrderStatus = (orderId: string, status: Order['status'], tracking?: string) => {
@@ -738,9 +922,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return ord;
       })
     );
+    updateFirebaseOrderStatus(orderId, status, tracking).catch(console.error);
     showToast(
-      'Order Status Updated & Email Sent',
-      `Order #${orderNum || orderId} marked as ${status}. Status notification dispatched to ${targetEmail || 'customer'}.`,
+      'Order Status Updated & Real-Time Synced',
+      `Order #${orderNum || orderId} status changed to ${status}. Synced to Firebase RTDB in Real Time & dispatched to ${targetEmail || 'customer'}.`,
       'success'
     );
   };
@@ -759,7 +944,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, stock: Math.max(0, stock) } : p))
     );
-    showToast('Inventory Updated', `Stock quantity adjusted to ${stock}.`, 'info');
+    updateFirebaseStock(productId, Math.max(0, stock)).catch(console.error);
+    showToast('Inventory Updated', `Stock quantity adjusted to ${stock} & updated in Firebase RTDB in Real Time.`, 'info');
   };
 
   return (
@@ -778,6 +964,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActiveSort,
         getProductReviews,
         addProductReview,
+        firebaseStatus,
+        isFirebaseSyncing,
+        lastFirebaseSyncTime,
+        forceSyncFirebase,
+        pushAllToFirebase,
         isCartOpen,
         setIsCartOpen,
         isSearchOpen,

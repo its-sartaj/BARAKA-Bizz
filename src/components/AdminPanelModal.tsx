@@ -254,6 +254,11 @@ export const AdminPanelModal: React.FC = () => {
     adminUpdateOrderStatus,
     adminUpdateStock,
     adminSendOrderEmail,
+    firebaseStatus,
+    isFirebaseSyncing,
+    lastFirebaseSyncTime,
+    forceSyncFirebase,
+    pushAllToFirebase,
     showToast
   } = useStore();
 
@@ -505,6 +510,32 @@ export const AdminPanelModal: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {isAdmin && (
               <>
+                {/* Firebase RTDB Live Indicator */}
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-[#1A1815] border border-[#3A342B] rounded-lg text-xs font-mono">
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      firebaseStatus === 'connected'
+                        ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]'
+                        : firebaseStatus === 'connecting'
+                        ? 'bg-amber-400 animate-spin'
+                        : 'bg-red-400'
+                    }`}
+                  />
+                  <span className="text-[#C8C2B5] text-[11px] font-semibold">
+                    RTDB: <span className={firebaseStatus === 'connected' ? 'text-emerald-400' : firebaseStatus === 'connecting' ? 'text-amber-400' : 'text-red-400'}>
+                      {firebaseStatus === 'connected' ? 'Live Stream' : firebaseStatus === 'connecting' ? 'Connecting...' : 'Offline'}
+                    </span>
+                  </span>
+                  <button
+                    onClick={forceSyncFirebase}
+                    disabled={isFirebaseSyncing}
+                    className="p-0.5 hover:text-[#E5C378] text-[#8C867B] transition-colors cursor-pointer disabled:opacity-40 ml-0.5"
+                    title="Refresh from Firebase Realtime Database"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isFirebaseSyncing ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
                 <button
                   onClick={handleExportReport}
                   className="px-3 py-1.5 bg-[#1F1E1B] hover:bg-[#2B2924] border border-[#38342E] text-[#E5C378] text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
@@ -738,6 +769,52 @@ export const AdminPanelModal: React.FC = () => {
               {activeTab === 'analytics' && (
                 <div className="space-y-6">
                   
+                  {/* Real-Time Firebase Database Status & Sync Control Card */}
+                  <div className="p-4 sm:p-5 bg-gradient-to-r from-[#171614] via-[#211E19] to-[#171614] rounded-xl border border-[#3D372E] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#26221A] border border-[#473E31] flex items-center justify-center text-[#E5C378] shrink-0 shadow-inner">
+                        <Sparkles className="w-5 h-5 text-[#E5C378]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold uppercase tracking-wider text-white font-mono">
+                            Firebase Realtime Database: <span className={firebaseStatus === 'connected' ? 'text-emerald-400' : firebaseStatus === 'connecting' ? 'text-amber-400' : 'text-red-400'}>
+                              {firebaseStatus === 'connected' ? 'Active & Live Connected' : firebaseStatus === 'connecting' ? 'Connecting to RTDB...' : 'Disconnected'}
+                            </span>
+                          </span>
+                          <span className="text-[10px] bg-emerald-950/80 text-emerald-400 px-2 py-0.5 rounded font-mono border border-emerald-800/40 font-semibold">
+                            REAL-TIME SSE
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#A8A298] font-mono mt-0.5 break-all">
+                          Endpoint: <span className="text-[#E5C378]">baraka-bizz-default-rtdb.asia-southeast1.firebasedatabase.app</span>
+                          {lastFirebaseSyncTime && <span className="ml-2 text-[#DDD7CC]">• Last Synced: {lastFirebaseSyncTime}</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                      <button
+                        onClick={forceSyncFirebase}
+                        disabled={isFirebaseSyncing}
+                        className="px-3.5 py-2 bg-[#26231E] hover:bg-[#332F28] border border-[#423C32] text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        title="Fetch latest updates directly from Firebase Realtime Database"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 text-[#E5C378] ${isFirebaseSyncing ? 'animate-spin' : ''}`} />
+                        <span>{isFirebaseSyncing ? 'Syncing...' : 'Sync From Firebase'}</span>
+                      </button>
+                      <button
+                        onClick={pushAllToFirebase}
+                        disabled={isFirebaseSyncing}
+                        className="px-3.5 py-2 bg-gradient-to-r from-[#B85D36] to-[#9E4622] hover:from-[#C7673C] hover:to-[#A34E2A] text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+                        title="Push current local catalog, orders, and reviews to Firebase RTDB"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Push All to Firebase</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Top 4 KPI Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     
