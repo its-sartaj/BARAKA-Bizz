@@ -263,21 +263,37 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         if (isCancelled) return;
 
-        // If Firebase is completely empty, automatically seed with current catalogue!
-        if (!remoteProducts || remoteProducts.length === 0) {
+        // Check if Firebase has ever been seeded
+        let syncMeta: any = null;
+        try {
+          const metaRes = await fetch(`${FIREBASE_RTDB_URL}/syncMeta.json`);
+          syncMeta = await metaRes.json();
+        } catch {}
+
+        const hasBeenSeeded = syncMeta && syncMeta.seeded === true;
+
+        if (!hasBeenSeeded && (!remoteProducts || remoteProducts.length === 0)) {
+          // First-ever initialization — seed with initial data
           const toSeedProducts = products && products.length > 0 ? products : INITIAL_PRODUCTS;
           const toSeedOrders = orders && orders.length > 0 ? orders : INITIAL_ORDERS;
           const toSeedReviews = reviews && reviews.length > 0 ? reviews : INITIAL_REVIEWS;
           await syncAllToFirebase(toSeedProducts, toSeedOrders, toSeedReviews);
+          // Mark as seeded so we never re-seed again
+          await fetch(`${FIREBASE_RTDB_URL}/syncMeta/seeded.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(true)
+          });
           setProducts(toSeedProducts);
           setOrders(toSeedOrders);
           setReviews(toSeedReviews);
         } else {
-          setProducts(remoteProducts);
-          if (remoteOrders && remoteOrders.length > 0) {
+          // Firebase has been seeded before — use remote data (even if empty)
+          setProducts(remoteProducts || []);
+          if (remoteOrders) {
             setOrders(remoteOrders);
           }
-          if (remoteReviews && remoteReviews.length > 0) {
+          if (remoteReviews) {
             setReviews(remoteReviews);
           }
         }
@@ -299,17 +315,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!isCancelled) {
         unsubscribe = listenToFirebaseRealtime({
           onProductsUpdate: (newProds) => {
-            if (newProds && newProds.length > 0) {
-              setProducts(newProds);
-              setLastFirebaseSyncTime(
-                new Date().toLocaleTimeString('en-IN', {
-                  timeZone: 'Asia/Kolkata',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit'
-                })
-              );
-            }
+            setProducts(newProds || []);
+            setLastFirebaseSyncTime(
+              new Date().toLocaleTimeString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              })
+            );
           },
           onOrdersUpdate: (newOrds) => {
             if (newOrds) {

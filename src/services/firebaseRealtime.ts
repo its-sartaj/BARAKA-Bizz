@@ -242,11 +242,13 @@ export function listenToFirebaseRealtime(callbacks: {
       productsEventSource.addEventListener('put', (e: MessageEvent) => {
         try {
           const parsed = JSON.parse(e.data);
-          if (parsed.path === '/' && parsed.data) {
-            callbacks.onProductsUpdate?.(normalizeArray<Product>(parsed.data));
+          if (parsed.path === '/') {
+            // data is null when all products are deleted — pass empty array
+            const prods = parsed.data ? normalizeArray<Product>(parsed.data) : [];
+            callbacks.onProductsUpdate?.(prods);
           } else if (parsed.path !== '/') {
             fetchFirebaseProducts().then((prods) => {
-              if (prods && prods.length > 0) callbacks.onProductsUpdate?.(prods);
+              callbacks.onProductsUpdate?.(prods || []);
             });
           }
           callbacks.onStatusChange?.('connected');
@@ -257,7 +259,7 @@ export function listenToFirebaseRealtime(callbacks: {
 
       productsEventSource.addEventListener('patch', () => {
         fetchFirebaseProducts().then((prods) => {
-          if (prods && prods.length > 0) callbacks.onProductsUpdate?.(prods);
+          callbacks.onProductsUpdate?.(prods || []);
         });
         callbacks.onStatusChange?.('connected');
       });
