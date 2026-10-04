@@ -202,7 +202,8 @@ export async function syncAllToFirebase(
           lastUpdated: new Date().toISOString(),
           updatedBy: 'Admin Atelier Director',
           databaseHost: 'baraka-bizz-default-rtdb.asia-southeast1.firebasedatabase.app',
-          status: 'live-synced'
+          status: 'live-synced',
+          seeded: true
         })
       })
     ]);

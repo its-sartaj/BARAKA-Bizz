@@ -118,22 +118,22 @@ const DEMO_USER: User = {
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Products
+  // Products — start empty; Firebase will populate on init
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('baraka_bizz_products') || localStorage.getItem('baraka_dizz_products');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // If prices are still under 500 (old USD values), migrate to INITIAL_PRODUCTS in INR
+        // If prices are still under 500 (old USD values), discard — Firebase will provide correct data
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].price < 500) {
-          return INITIAL_PRODUCTS;
+          return [];
         }
         return parsed;
       } catch {
-        return INITIAL_PRODUCTS;
+        return [];
       }
     }
-    return INITIAL_PRODUCTS;
+    return [];
   });
 
   // Cart
@@ -217,6 +217,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [firebaseStatus, setFirebaseStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const [isFirebaseSyncing, setIsFirebaseSyncing] = useState<boolean>(false);
   const [lastFirebaseSyncTime, setLastFirebaseSyncTime] = useState<string>('');
+  // Ref to suppress SSE updates during admin write operations (delete/add/edit)
+  const suppressSSERef = React.useRef<boolean>(false);
 
   // Sync to localStorage
   useEffect(() => {
@@ -315,6 +317,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!isCancelled) {
         unsubscribe = listenToFirebaseRealtime({
           onProductsUpdate: (newProds) => {
+            // Skip SSE updates while an admin write operation is in progress
+            if (suppressSSERef.current) return;
             setProducts(newProds || []);
             setLastFirebaseSyncTime(
               new Date().toLocaleTimeString('en-IN', {
@@ -912,11 +916,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Product Updated', `${updatedProd.name} updated & synced to Firebase in Real Time.`, 'success');
   };
 
-  const adminDeleteProduct = (productId: string) => {
+  const adminDeleteProduct = async (productId: string) => {
     const prod = products.find((p) => p.id === productId);
+    // Suppress SSE updates to prevent stale data from overwriting
+    suppressSSERef.current = true;
     setProducts((prev) => prev.filter((p) => p.id !== productId));
-    deleteFirebaseProduct(productId).catch(console.error);
+    try {
+      await deleteFirebaseProduct(productId);
+    } catch (err) {
+      console.error('Firebase delete failed:', err);
+    }
     showToast('Product Deleted', `${prod?.name || 'Item'} deleted from catalog & Firebase RTDB.`, 'info');
+    // Re-enable SSE after a short delay to let Firebase propagate the change
+    setTimeout(() => { suppressSSERef.current = false; }, 2000);
   };
 
   const adminUpdateOrderStatus = (orderId: string, status: Order['status'], tracking?: string) => {
